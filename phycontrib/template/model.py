@@ -168,7 +168,7 @@ def from_sparse(data, cols, channel_ids):
 
 
 class TemplateModel(object):
-    n_closest_channels = 16
+    # n_closest_channels = 16
 
     def __init__(self, dat_path=None, **kwargs):
         dat_path = dat_path or ''
@@ -224,6 +224,7 @@ class TemplateModel(object):
 
         # Channels.
         self.channel_mapping = self._load_channel_map()
+        self.channel_shank_mapping = self._load_channel_shank_map()
         self.n_channels = nc = self.channel_mapping.shape[0]
         assert np.all(self.channel_mapping <= self.n_channels_dat - 1)
 
@@ -346,6 +347,9 @@ class TemplateModel(object):
         out = self._read_array('channel_map')
         assert out.dtype in (np.uint32, np.int32, np.int64)
         return out
+
+    def _load_channel_shank_map(self):
+        return self._read_array('channel_shank_map')
 
     def _load_channel_positions(self):
         return self._read_array('channel_positions')
@@ -515,9 +519,14 @@ class TemplateModel(object):
         assert template.ndim == 2
         amplitude = template.max(axis=0) - template.min(axis=0)
         best_channel = np.argmax(amplitude)
+        # channel_ids = get_closest_channels(self.channel_positions,
+        #                                    best_channel,
+        #                                    self.n_closest_channels)
+        best_channel_shank = self.channel_shank_mapping[best_channel]
+        n_closest_channels = len(np.where(self.channel_shank_mapping == best_channel_shank)[0])
         channel_ids = get_closest_channels(self.channel_positions,
                                            best_channel,
-                                           self.n_closest_channels)
+                                           n_closest_channels)
         template = template[:, channel_ids]
         assert template.ndim == 2
         assert template.shape[1] == channel_ids.shape[0]
