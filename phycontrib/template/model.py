@@ -117,6 +117,12 @@ def get_closest_channels(channel_positions, channel_index, n=None):
     return out
 
 
+def get_channels_on_same_shank(channel_shank_map, channel_index):
+    shankID = channel_shank_map[channel_index]
+    out = np.where(channel_shank_map == shankID)[0]
+    return out
+
+
 def from_sparse(data, cols, channel_ids):
     """Convert a sparse structure into a dense one.
 
@@ -522,11 +528,14 @@ class TemplateModel(object):
         # channel_ids = get_closest_channels(self.channel_positions,
         #                                    best_channel,
         #                                    self.n_closest_channels)
-        best_channel_shank = self.channel_shank_mapping[best_channel]
-        n_closest_channels = len(np.where(self.channel_shank_mapping == best_channel_shank)[0])
-        channel_ids = get_closest_channels(self.channel_positions,
-                                           best_channel,
-                                           n_closest_channels)
+
+        # best_channel_shank = self.channel_shank_mapping[best_channel]
+        # n_closest_channels = len(np.where(self.channel_shank_mapping == best_channel_shank)[0])
+        # channel_ids = get_closest_channels(self.channel_positions,
+        #                                    best_channel,
+        #                                    n_closest_channels)
+        channel_ids = get_channels_on_same_shank(self.channel_shank_mapping,
+                                                 best_channel)
         template = template[:, channel_ids]
         assert template.ndim == 2
         assert template.shape[1] == channel_ids.shape[0]
