@@ -115,6 +115,7 @@ class TemplateController(EventEmitter):
                   '_get_features',
                   '_get_template_features',
                   '_get_amplitudes',
+                  '_get_amplitudes_mV',
                   '_get_correlograms',
                   )
         _cache_methods(self, memcached, cached)
@@ -518,10 +519,37 @@ class TemplateController(EventEmitter):
         y = m.amplitudes[spike_ids]
         return Bunch(x=x, y=y, data_bounds=(0., 0., m.duration, y.max()))
 
+    def _get_amplitudes_mV(self, cluster_id):
+        n = self.n_spikes_amplitudes
+        m = self.model
+        spike_ids = self.selector.select_spikes([cluster_id], n)
+        x = m.spike_times[spike_ids]
+        y = m.amplitudes_mV[spike_ids]
+        return Bunch(x=x, y=y, data_bounds=(0., 0., m.duration, y.max()))
+
     def add_amplitude_view(self, gui):
         v = AmplitudeView(coords=self._get_amplitudes,
-                          )
-        return self._add_view(gui, v)
+                              )
+        # if self.model.amplitudes_mV is not None:
+        #     v = AmplitudeView(coords=self._get_amplitudes_mV,
+        #                       )
+        # else:
+        #     v = AmplitudeView(coords=self._get_amplitudes,
+        #                       )
+        # return self._add_view(gui, v)
+        self._add_view(gui, v)
+
+        v.actions.separator()
+
+        @v.actions.add(shortcut='a')
+        def toggle_amplitudes():
+            if self.model.amplitudes_mV is None:
+                return
+            f, g = self._get_amplitudes, self._get_amplitudes_mV
+            v.coords = f if v.waveforms == g else g
+            v.on_select()
+
+        return v
 
     # Probe view
     # -------------------------------------------------------------------------

@@ -222,6 +222,10 @@ class TemplateModel(object):
         self.amplitudes = self._load_amplitudes()
         assert self.amplitudes.shape == (ns,)
 
+        self.amplitudes_mV = self._load_amplitudes_mV()
+        if self.amplitudes_mV is not None:
+            assert self.amplitudes_mV.shape == (ns,)
+
         self.spike_templates = self._load_spike_templates()
         assert self.spike_templates.shape == (ns,)
 
@@ -375,6 +379,12 @@ class TemplateModel(object):
 
     def _load_amplitudes(self):
         return self._read_array('amplitudes')
+
+    def _load_amplitudes_mV(self):
+        try:
+            return self._read_array('amplitudes_mV')
+        except:
+            return None
 
     def _load_spike_templates(self):
         out = self._read_array('spike_templates')
