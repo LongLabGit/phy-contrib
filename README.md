@@ -18,6 +18,20 @@ pip install phycontrib
 
 ### Installing the development version
 
+for a first pass, just give our github address instead of theirs
+BUT, if you want to update it you need to move phy contrib from the github to your site packages 
+copy from the github (eg. S:\Vigi\Matlab\GitHub\phy-contrib) to your miniconda version (e.g. C:\Users\User\Miniconda3\envs\phyL\Lib\site-packages\phycontrib) where phyL is your environment
+
+Next, set up your config file
+in C:\Users\User\.phy set up two things
+1) a plugins folder, with your plugsin
+2) a file called phy_config.py
+add these lines to it:
+
+c.Plugins.dirs = [r'C:\Users\User\.phy\plugins/']
+c.TemplateGUI.plugins = ['ControllerSettings', 'AmplitudeHistogram']
+
+
 If you want to use the bleeding-edge version, do:
 
 ```
