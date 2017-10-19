@@ -99,16 +99,16 @@ class AmplitudeHistogram(IPlugin):
                         popt, pcov = curve_fit(gaussian_cut, x, num, p0=p0,
                                                maxfev=10000)
                         was_fit[i] = True
+                    #except Exception as e:
+                     #   try:
+                     #       logger.info("Fitting failed with maxfev=10000"
+                     #                   ", trying maxfev=1000000")
+                     #       popt, pcov = curve_fit(gaussian_cut, x, num,
+                     #                              p0=p0, maxfev=1000000)
+                     #       was_fit[i] = True
                     except Exception as e:
-                        try:
-                            logger.info("Fitting failed with maxfev=10000"
-                                        ", trying maxfev=1000000")
-                            popt, pcov = curve_fit(gaussian_cut, x, num,
-                                                   p0=p0, maxfev=1000000)
-                            was_fit[i] = True
-                        except Exception as e:
-                            logger.info("Fitting error: %s", str(e))
-                            was_fit[i] = False
+                        logger.info("Fitting error: %s", str(e))
+                        was_fit[i] = False
                     if was_fit[i]:
                         n_fit = gaussian_cut(x, popt[0], popt[1],
                                              popt[2], popt[3])
