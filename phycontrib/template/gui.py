@@ -289,7 +289,7 @@ class TemplateController(EventEmitter):
         f = (self._get_waveforms if self.model.traces is not None
              else self._get_template_waveforms)
         v = WaveformView(waveforms=f,
-                         )
+                         channel_labels=self.model.channel_mapping)
         v = self._add_view(gui, v)
 
         v.actions.separator()
