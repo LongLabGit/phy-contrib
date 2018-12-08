@@ -119,7 +119,7 @@ def get_closest_channels(channel_positions, channel_index, n=None):
 
 def get_channels_on_same_shank(channel_shank_map, channel_index):
     shankID = channel_shank_map[channel_index]
-    out = np.where(channel_shank_map == shankID)[0]
+    out = channel_shank_map == shankID
     return out
 
 
