@@ -17,13 +17,13 @@ import numpy as np
 from phy.cluster.supervisor import Supervisor
 from phy.cluster.views import (WaveformView,
                                FeatureView,
-                               TraceView,
+                               # TraceView,
                                CorrelogramView,
                                ScatterView,
                                ProbeView,
-                               select_traces,
+                               # select_traces,
                                )
-from phy.cluster.views.trace import _iter_spike_waveforms
+# from phy.cluster.views.trace import _iter_spike_waveforms
 from phy.gui import create_app, run_app, GUI
 from phy.io.array import (Selector,
                           )
@@ -398,90 +398,90 @@ class TemplateController(EventEmitter):
     # Traces
     # -------------------------------------------------------------------------
 
-    def _get_traces(self, interval):
-        """Get traces and spike waveforms."""
-        k = self.model.n_samples_templates
-        m = self.model
+    # def _get_traces(self, interval):
+    #     """Get traces and spike waveforms."""
+    #     k = self.model.n_samples_templates
+    #     m = self.model
+    #
+    #     traces_interval = select_traces(m.traces, interval,
+    #                                     sample_rate=m.sample_rate)
+    #     # Reorder vertically.
+    #     out = Bunch(data=traces_interval)
+    #     out.waveforms = []
+    #
+    #     def gbc(cluster_id):
+    #         return self.get_best_channels(cluster_id)
+    #
+    #     for b in _iter_spike_waveforms(interval=interval,
+    #                                    traces_interval=traces_interval,
+    #                                    model=self.model,
+    #                                    supervisor=self.supervisor,
+    #                                    color_selector=self.color_selector,
+    #                                    n_samples_waveforms=k,
+    #                                    get_best_channels=gbc,
+    #                                    show_all_spikes=self._show_all_spikes,
+    #                                    ):
+    #         i = b.spike_id
+    #         # Compute the residual: waveform - amplitude * template.
+    #         residual = b.copy()
+    #         template_id = m.spike_templates[i]
+    #         template = m.get_template(template_id).template
+    #         amplitude = m.amplitudes[i]
+    #         residual.data = residual.data - amplitude * template
+    #         out.waveforms.extend([b, residual])
+    #     return out
 
-        traces_interval = select_traces(m.traces, interval,
-                                        sample_rate=m.sample_rate)
-        # Reorder vertically.
-        out = Bunch(data=traces_interval)
-        out.waveforms = []
+    # def _jump_to_spike(self, view, delta=+1):
+    #     """Jump to next or previous spike from the selected clusters."""
+    #     m = self.model
+    #     cluster_ids = self.supervisor.selected
+    #     if len(cluster_ids) == 0:
+    #         return
+    #     spc = self.supervisor.clustering.spikes_per_cluster
+    #     spike_ids = spc[cluster_ids[0]]
+    #     spike_times = m.spike_times[spike_ids]
+    #     ind = np.searchsorted(spike_times, view.time)
+    #     n = len(spike_times)
+    #     view.go_to(spike_times[(ind + delta) % n])
 
-        def gbc(cluster_id):
-            return self.get_best_channels(cluster_id)
-
-        for b in _iter_spike_waveforms(interval=interval,
-                                       traces_interval=traces_interval,
-                                       model=self.model,
-                                       supervisor=self.supervisor,
-                                       color_selector=self.color_selector,
-                                       n_samples_waveforms=k,
-                                       get_best_channels=gbc,
-                                       show_all_spikes=self._show_all_spikes,
-                                       ):
-            i = b.spike_id
-            # Compute the residual: waveform - amplitude * template.
-            residual = b.copy()
-            template_id = m.spike_templates[i]
-            template = m.get_template(template_id).template
-            amplitude = m.amplitudes[i]
-            residual.data = residual.data - amplitude * template
-            out.waveforms.extend([b, residual])
-        return out
-
-    def _jump_to_spike(self, view, delta=+1):
-        """Jump to next or previous spike from the selected clusters."""
-        m = self.model
-        cluster_ids = self.supervisor.selected
-        if len(cluster_ids) == 0:
-            return
-        spc = self.supervisor.clustering.spikes_per_cluster
-        spike_ids = spc[cluster_ids[0]]
-        spike_times = m.spike_times[spike_ids]
-        ind = np.searchsorted(spike_times, view.time)
-        n = len(spike_times)
-        view.go_to(spike_times[(ind + delta) % n])
-
-    def add_trace_view(self, gui):
-        m = self.model
-        v = TraceView(traces=self._get_traces,
-                      n_channels=m.n_channels,
-                      sample_rate=m.sample_rate,
-                      duration=m.duration,
-                      channel_vertical_order=m.channel_vertical_order,
-                      )
-        self._add_view(gui, v)
-
-        v.actions.separator()
-
-        @v.actions.add(shortcut='alt+pgdown')
-        def go_to_next_spike():
-            """Jump to the next spike from the first selected cluster."""
-            self._jump_to_spike(v, +1)
-
-        @v.actions.add(shortcut='alt+pgup')
-        def go_to_previous_spike():
-            """Jump to the previous spike from the first selected cluster."""
-            self._jump_to_spike(v, -1)
-
-        v.actions.separator()
-
-        @v.actions.add(shortcut='alt+s')
-        def toggle_highlighted_spikes():
-            """Toggle between showing all spikes or selected spikes."""
-            self._show_all_spikes = not self._show_all_spikes
-            v.set_interval(force_update=True)
-
-        @gui.connect_
-        def on_spike_click(channel_id=None, spike_id=None, cluster_id=None):
-            # Select the corresponding cluster.
-            self.supervisor.select([cluster_id])
-            # Update the trace view.
-            v.on_select([cluster_id], force_update=True)
-
-        return v
+    # def add_trace_view(self, gui):
+    #     m = self.model
+    #     v = TraceView(traces=self._get_traces,
+    #                   n_channels=m.n_channels,
+    #                   sample_rate=m.sample_rate,
+    #                   duration=m.duration,
+    #                   channel_vertical_order=m.channel_vertical_order,
+    #                   )
+    #     self._add_view(gui, v)
+    #
+    #     v.actions.separator()
+    #
+    #     @v.actions.add(shortcut='alt+pgdown')
+    #     def go_to_next_spike():
+    #         """Jump to the next spike from the first selected cluster."""
+    #         self._jump_to_spike(v, +1)
+    #
+    #     @v.actions.add(shortcut='alt+pgup')
+    #     def go_to_previous_spike():
+    #         """Jump to the previous spike from the first selected cluster."""
+    #         self._jump_to_spike(v, -1)
+    #
+    #     v.actions.separator()
+    #
+    #     @v.actions.add(shortcut='alt+s')
+    #     def toggle_highlighted_spikes():
+    #         """Toggle between showing all spikes or selected spikes."""
+    #         self._show_all_spikes = not self._show_all_spikes
+    #         v.set_interval(force_update=True)
+    #
+    #     @gui.connect_
+    #     def on_spike_click(channel_id=None, spike_id=None, cluster_id=None):
+    #         # Select the corresponding cluster.
+    #         self.supervisor.select([cluster_id])
+    #         # Update the trace view.
+    #         v.on_select([cluster_id], force_update=True)
+    #
+    #     return v
 
     # Correlograms
     # -------------------------------------------------------------------------
@@ -573,8 +573,8 @@ class TemplateController(EventEmitter):
         self.supervisor.attach(gui)
 
         self.add_waveform_view(gui)
-        if self.model.traces is not None:
-            self.add_trace_view(gui)
+        # if self.model.traces is not None:
+        #     self.add_trace_view(gui)
         if self.model.features is not None:
             self.add_feature_view(gui)
         if self.model.template_features is not None:
