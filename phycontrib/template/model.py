@@ -13,7 +13,7 @@ from phy.io.array import (_concatenate_virtual_arrays,
                           _index_of,
                           _spikes_in_clusters,
                           )
-from phy.traces import WaveformLoader
+from phy.traces import WaveformSnippetLoader
 from phy.utils import Bunch
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,8 @@ def save_metadata(filename, field_name, metadata):
         writer.writerows([(cluster, metadata[cluster])
                           for cluster in sorted(metadata)])
 
-
+#TODO: the following three functions are potentially obsolete (?) or have to be used differently
+# with the extracted waveform file
 def _dat_n_samples(filename, dtype=None, n_channels=None, offset=None):
     assert dtype is not None
     item_size = np.dtype(dtype).itemsize
@@ -119,7 +120,7 @@ def get_closest_channels(channel_positions, channel_index, n=None):
 
 def get_channels_on_same_shank(channel_shank_map, channel_index):
     shankID = channel_shank_map[channel_index]
-    out = channel_shank_map == shankID
+    out = np.where(channel_shank_map == shankID)[0]
     return out
 
 
@@ -246,6 +247,7 @@ class TemplateModel(object):
         # Templates.
         self.sparse_templates = self._load_templates()
         self.n_templates = self.sparse_templates.data.shape[0]
+        # TODO: figure out if this is done correctly in KiloSort
         self.n_samples_templates = self.sparse_templates.data.shape[1]
         self.n_channels_loc = self.sparse_templates.data.shape[2]
         if self.sparse_templates.cols is not None:
@@ -265,7 +267,7 @@ class TemplateModel(object):
         assert self.similar_templates.shape == (self.n_templates,
                                                 self.n_templates)
 
-        self.traces = self._load_traces(self.channel_mapping)
+        self.traces = self._load_traces(self.channel_mapping, self.channel_shank_mapping)
         if self.traces is not None:
             self.duration = self.traces.shape[0] / float(self.sample_rate)
         else:
@@ -301,7 +303,7 @@ class TemplateModel(object):
         # Number of time samples in the templates.
         nsw = self.n_samples_templates
         if self.traces is not None:
-            return WaveformLoader(traces=self.traces,
+            return WaveformSnippetLoader(snippets=self.traces,
                                   spike_samples=self.spike_samples,
                                   n_samples_waveforms=nsw,
                                   filter_order=self.filter_order,
@@ -364,16 +366,19 @@ class TemplateModel(object):
     def _load_channel_positions(self):
         return self._read_array('channel_positions')
 
-    def _load_traces(self, channel_map=None):
+    def _load_traces(self, channel_map=None, channel_shank_map=None):
+        assert channel_shank_map is not None
+        min_shank = np.min(channel_shank_map)
+        wf_channels = len(np.where(channel_shank_map == min_shank)[0])
         traces = load_raw_data(self.dat_path,
-                               n_channels_dat=self.n_channels_dat,
+                               n_channels_dat=wf_channels,
                                dtype=self.dtype,
                                offset=self.offset,
                                )
         if traces is not None:
             # Find the scaling factor for the traces.
             traces = _concatenate_virtual_arrays([traces],
-                                                 channel_map,
+                                                 range(wf_channels),
                                                  )
         return traces
 
@@ -566,7 +571,7 @@ class TemplateModel(object):
         """Return several waveforms on specified channels."""
         if self.waveform_loader is None:
             return
-        out = self.waveform_loader.get(spike_ids, channel_ids)
+        out = self.waveform_loader.get(spike_ids)
         assert out.dtype in (np.float32, np.float64)
         assert out.shape[0] == len(spike_ids)
         assert out.shape[2] == len(channel_ids)
