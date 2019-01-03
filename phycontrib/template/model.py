@@ -68,8 +68,7 @@ def save_metadata(filename, field_name, metadata):
         writer.writerows([(cluster, metadata[cluster])
                           for cluster in sorted(metadata)])
 
-#TODO: the following three functions are potentially obsolete (?) or have to be used differently
-# with the extracted waveform file
+
 def _dat_n_samples(filename, dtype=None, n_channels=None, offset=None):
     assert dtype is not None
     item_size = np.dtype(dtype).itemsize
@@ -268,10 +267,7 @@ class TemplateModel(object):
                                                 self.n_templates)
 
         self.traces = self._load_traces(self.channel_mapping, self.channel_shank_mapping)
-        if self.traces is not None:
-            self.duration = self.traces.shape[0] / float(self.sample_rate)
-        else:
-            self.duration = self.spike_times[-1]
+        self.duration = self.spike_times[-1]
         if self.spike_times[-1] > self.duration:
             logger.debug("There are %d/%d spikes after the end of "
                          "the recording.",
