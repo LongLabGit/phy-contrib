@@ -47,7 +47,7 @@ class AutomatedClusterCut(IPlugin):
             labels_ = np.unique(labels)
             for label in labels_[:-1]:
                 split_spike_ids = spike_ids[np.where(labels == label)]
-                clustering.split(split_spike_ids)
+                controller.supervisor.split(split_spike_ids)
 
         @controller.supervisor.connect
         def on_create_cluster_views():
