@@ -246,8 +246,8 @@ class TemplateModel(object):
         # Templates.
         self.sparse_templates = self._load_templates()
         self.n_templates = self.sparse_templates.data.shape[0]
-        # TODO: figure out if this is done correctly in KiloSort
-        self.n_samples_templates = self.sparse_templates.data.shape[1]
+        # self.n_samples_templates = self.sparse_templates.data.shape[1]
+        self.n_samples_templates = self._get_template_samples(self.sparse_templates.data)
         self.n_channels_loc = self.sparse_templates.data.shape[2]
         if self.sparse_templates.cols is not None:
             assert self.sparse_templates.cols.shape == (self.n_templates,
@@ -432,6 +432,14 @@ class TemplateModel(object):
             cols = None
 
         return Bunch(data=data, cols=cols)
+
+    def _get_template_samples(self, templates):
+        # KiloSort output pads the template of length nt0 with zeros to total length 61 - nt0
+        # look at max channel of first template and count non-zero channels
+        # templates shape: (template, sample, channel)
+        max_channel = np.argmax(np.max(np.abs(templates), axis=1), axis=1)
+        n_template_samples = np.sum(templates[0, :, max_channel[0]] != 0)
+        return n_template_samples
 
     def _load_wm(self):
         logger.debug("Loading the whitening matrix.")

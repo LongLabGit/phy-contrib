@@ -278,6 +278,14 @@ class TemplateController(EventEmitter):
         waveforms = from_sparse(data, cols, channel_ids)
         # Transpose back.
         waveforms = waveforms.transpose((0, 2, 1))
+        # KiloSort output pads the template of length nt0
+        # to total length 61 - nt0 with zeros in the beginning
+        # look at max channel of first template and count non-zero channels
+        # templates shape: (sample, channel)
+        max_channel_index = np.where(templates[0].channel_ids == templates[0].best_channel)[0]
+        n_template_samples = np.sum(templates[0].template[:, max_channel_index] != 0)
+        skip_samples = 61 - n_template_samples
+        waveforms = waveforms[:, skip_samples:, :]
         return Bunch(data=waveforms,
                      channel_ids=channel_ids,
                      channel_positions=pos[channel_ids],
