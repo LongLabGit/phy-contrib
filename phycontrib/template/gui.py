@@ -234,10 +234,19 @@ class TemplateController(EventEmitter):
     def _get_waveforms(self, cluster_id):
         """Return a selection of waveforms for a cluster."""
         pos = self.model.channel_positions
-        spike_ids = self.selector.select_spikes([cluster_id],
-                                                self.n_spikes_waveforms,
-                                                self.batch_size_waveforms,
-                                                )
+        ds = self.model.downsample
+        if ds is None:
+            spike_ids = self.selector.select_spikes([cluster_id],
+                                                    self.n_spikes_waveforms,
+                                                    self.batch_size_waveforms,
+                                                    )
+        else:
+            spike_ids = self.selector.select_spikes([cluster_id],
+                                                    self.n_spikes_waveforms,
+                                                    self.batch_size_waveforms,
+                                                    'regular_downsampled',
+                                                    ds,
+                                                    )
         channel_ids = self.get_best_channels(cluster_id)
         data = self.model.get_waveforms(spike_ids, channel_ids)
         data = data - data.mean()

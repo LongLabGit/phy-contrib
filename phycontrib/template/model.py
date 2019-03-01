@@ -191,6 +191,8 @@ class TemplateModel(object):
 
         self.filter_order = None if getattr(self, 'hp_filtered', False) else 3
 
+        self.downsample = getattr(self, 'downsample', None)
+
         self._load_data()
         self.waveform_loader = self._create_waveform_loader()
 
