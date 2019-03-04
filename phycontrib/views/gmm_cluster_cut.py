@@ -82,6 +82,8 @@ class AutomatedClusterCut(IPlugin):
         @controller.supervisor.connect
         def on_create_cluster_views():
 
+            controller.supervisor.actions.separator()
+
             @controller.supervisor.actions.add(alias='gmm')
             def automated_cluster_cut(n_components):
                 # TODO: add possibility to use PCs from specific channels
