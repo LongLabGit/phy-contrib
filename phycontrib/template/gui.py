@@ -373,7 +373,8 @@ class TemplateController(EventEmitter):
 
     def add_feature_view(self, gui):
         v = FeatureView(features=self._get_features,
-                        attributes={'time': self._get_spike_times}
+                        attributes={'time': self._get_spike_times},
+                         channel_labels=self.model.channel_mapping
                         )
         return self._add_view(gui, v)
 
