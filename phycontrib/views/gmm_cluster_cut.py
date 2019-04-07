@@ -68,7 +68,10 @@ class AutomatedClusterCut(IPlugin):
             # since we want to use the PCs on all channels where they
             # have been calculated, we need:
             # pc.shape = n_spikes, n_channels_loc * n_pcs
-            pc_ = controller.model.features[spike_ids]
+            template_id = controller.get_template_for_cluster(cluster_ids[0])
+            channel_ids = controller.model.get_template(template_id).channel_ids
+            pc_ = controller.model.get_features(spike_ids, channel_ids)
+            # pc_ = controller.model.features[spike_ids]
             pc = np.reshape(pc_, (pc_.shape[0], pc_.shape[1] * pc_.shape[2]))
             if n_components == 'var':
                 labels = _fit_gmm_var_n_components(pc)
@@ -98,4 +101,63 @@ class AutomatedClusterCut(IPlugin):
                 else:
                     logger.error('GMM cluster cut requires at least 2 components in mixture; or -1 to estimate these')
 
+
+class RemoveOutliers(IPlugin):
+
+    def attach_to_controller(self, controller):
+
+        @controller.supervisor.connect
+        def on_create_cluster_views():
+
+            @controller.supervisor.actions.add(alias='rmo')
+            def remove_outliers(channel_0_str, channel_1_str, percentile):
+                s = 'AaBbCc' # PC 1-3
+                channel_0_ID = int(channel_0_str[:-1])
+                channel_0_PC_ = channel_0_str[-1]
+                channel_0_PC = s.index(channel_0_PC_) // 2
+                channel_1_ID = int(channel_1_str[:-1])
+                channel_1_PC_ = channel_1_str[-1]
+                channel_1_PC =s.index(channel_1_PC_) // 2
+
+                # reverse lookup of channel IDs;
+                channel_0 = np.where(controller.model.channel_mapping == channel_0_ID)[0][0]
+                channel_1 = np.where(controller.model.channel_mapping == channel_1_ID)[0][0]
+                # handle case where we want to use PCs on same channel
+                if channel_0 == channel_1:
+                    channel_ids = (channel_0, )
+                    channels_PC_lookup = (0, 0)
+                else:
+                    channel_ids = (channel_0, channel_1)
+                    channels_PC_lookup = (0, 1)
+
+                # figure out which channels the PC order corresponds to?
+                # look up values of the PCs on those channels
+                cluster_ids = controller.supervisor.selected
+                spike_ids = controller.supervisor.clustering.spikes_in_clusters(cluster_ids)
+                data_ = controller.model.get_features(spike_ids, channel_ids)
+                # shape of features: (n_spikes, n_channels (i.e., 1 or 2), n_PCs)
+                data = np.zeros((data_.shape[0], 2))
+                data[:, 0] = data_[:, channels_PC_lookup[0], channel_0_PC]
+                data[:, 1] = data_[:, channels_PC_lookup[1], channel_1_PC]
+
+                # compute mean and covariance matrix and normalized distance
+                mu = np.mean(data, axis=0)
+                data_centered = data - mu
+                data_centered = data_centered.transpose()
+                sigma = np.dot(data_centered, data_centered.transpose()) / (data_centered.shape[1] - 1.0)
+                sigma_inv = np.linalg.pinv(sigma)
+                spike_distances = np.zeros(data_centered.shape[1])
+                for i in range(len(spike_distances)):
+                    spike_distances[i] = np.sqrt(np.dot(data_centered[:, i].transpose(), np.dot(sigma_inv, data_centered[:, i])))
+
+                # select all above/below distance parameter and cut
+                # 2D normal distribution: distance can be computed analytically from percentile
+                if not 0.0 < percentile < 1.0:
+                    logger.error('Percentile has to be in the interval (0, 1)!')
+                else:
+                    distance = np.sqrt(-2.0*np.log(1.0 - percentile))
+                    split_spike_ids = spike_ids[np.where(spike_distances <= distance)]
+                    percentile_kept = 1.0 * len(split_spike_ids) / len(spike_ids)
+                    logger.info('Kept %.4f of spikes; %.4f requested' % (percentile_kept, percentile))
+                    controller.supervisor.split(split_spike_ids)
 
