@@ -117,7 +117,7 @@ class RemoveOutliers(IPlugin):
                 channel_0_PC = s.index(channel_0_PC_) // 2
                 channel_1_ID = int(channel_1_str[:-1])
                 channel_1_PC_ = channel_1_str[-1]
-                channel_1_PC =s.index(channel_1_PC_) // 2
+                channel_1_PC = s.index(channel_1_PC_) // 2
 
                 # reverse lookup of channel IDs;
                 channel_0 = np.where(controller.model.channel_mapping == channel_0_ID)[0][0]
@@ -150,14 +150,13 @@ class RemoveOutliers(IPlugin):
                 for i in range(len(spike_distances)):
                     spike_distances[i] = np.sqrt(np.dot(data_centered[:, i].transpose(), np.dot(sigma_inv, data_centered[:, i])))
 
-                # select all above/below distance parameter and cut
-                # 2D normal distribution: distance can be computed analytically from percentile
+                # select all above/below percentile parameter and cut
                 if not 0.0 < percentile < 1.0:
                     logger.error('Percentile has to be in the interval (0, 1)!')
                 else:
-                    distance = np.sqrt(-2.0*np.log(1.0 - percentile))
+                    distance = np.percentile(spike_distances, percentile*100.0)
                     split_spike_ids = spike_ids[np.where(spike_distances <= distance)]
                     percentile_kept = 1.0 * len(split_spike_ids) / len(spike_ids)
-                    logger.info('Kept %.4f of spikes; %.4f requested' % (percentile_kept, percentile))
+                    logger.info('Distance: %.4f; kept %.4f of spikes; %.4f requested' % (distance, percentile_kept, percentile))
                     controller.supervisor.split(split_spike_ids)
 
