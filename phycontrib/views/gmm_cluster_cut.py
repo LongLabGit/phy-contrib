@@ -82,24 +82,76 @@ class AutomatedClusterCut(IPlugin):
                 split_spike_ids = spike_ids[np.where(labels == label)]
                 controller.supervisor.split(split_spike_ids)
 
+        def _fit_gmm_on_selected_channels(cluster_ids, n_components, channel_0_str, channel_1_str):
+            clustering = controller.supervisor.clustering
+            for cluster in cluster_ids:
+                logger.info('%d spikes in cluster %d' % (len(clustering.spikes_per_cluster[cluster]), cluster))
+            spike_ids = clustering.spikes_in_clusters(cluster_ids)
+            logger.info('%d spikes in all clusters' % len(spike_ids))
+
+            # figure out PCs on selected channels
+            s = 'AaBbCc' # PC 1-3
+            channel_0_ID = int(channel_0_str[:-1])
+            channel_0_PC_ = channel_0_str[-1]
+            channel_0_PC = s.index(channel_0_PC_) // 2
+            channel_1_ID = int(channel_1_str[:-1])
+            channel_1_PC_ = channel_1_str[-1]
+            channel_1_PC = s.index(channel_1_PC_) // 2
+
+            # reverse lookup of channel IDs;
+            channel_0 = np.where(controller.model.channel_mapping == channel_0_ID)[0][0]
+            channel_1 = np.where(controller.model.channel_mapping == channel_1_ID)[0][0]
+            # handle case where we want to use PCs on same channel
+            if channel_0 == channel_1:
+                channel_ids = (channel_0, )
+                channels_PC_lookup = (0, 0)
+            else:
+                channel_ids = (channel_0, channel_1)
+                channels_PC_lookup = (0, 1)
+
+            # figure out which channels the PC order corresponds to?
+            # look up values of the PCs on those channels
+            cluster_ids = controller.supervisor.selected
+            spike_ids = controller.supervisor.clustering.spikes_in_clusters(cluster_ids)
+            data_ = controller.model.get_features(spike_ids, channel_ids)
+            # shape of features: (n_spikes, n_channels (i.e., 1 or 2), n_PCs)
+            pc = np.zeros((data_.shape[0], 2))
+            pc[:, 0] = data_[:, channels_PC_lookup[0], channel_0_PC]
+            pc[:, 1] = data_[:, channels_PC_lookup[1], channel_1_PC]
+
+            labels = _fit_gmm_fixed_n_components(pc, n_components)
+            labels_ = np.unique(labels)
+            for label in labels_[:-1]:
+                split_spike_ids = spike_ids[np.where(labels == label)]
+                controller.supervisor.split(split_spike_ids)
+
         @controller.supervisor.connect
         def on_create_cluster_views():
 
             controller.supervisor.actions.separator()
 
             @controller.supervisor.actions.add(alias='gmm')
-            def automated_cluster_cut(n_components):
-                # TODO: add possibility to use PCs from specific channels
-                if n_components == 'var':
-                    logger.info('Starting GMM cluster cut with unknown number of components in mixture...')
-                    cluster_ids = controller.supervisor.selected
-                    _fit_gmm(cluster_ids, n_components)
-                elif n_components >= 2:
-                    logger.info('Starting GMM cluster cut with %d components in mixture...' % n_components)
-                    cluster_ids = controller.supervisor.selected
-                    _fit_gmm(cluster_ids, n_components)
+            def automated_cluster_cut(n_components, channel_0_str=None, channel_1_str=None):
+                if channel_0_str is None and channel_1_str is None:
+                    if n_components == 'var':
+                        logger.info('Starting GMM cluster cut with unknown number of components in mixture...')
+                        cluster_ids = controller.supervisor.selected
+                        _fit_gmm(cluster_ids, n_components)
+                    elif n_components >= 2:
+                        logger.info('Starting GMM cluster cut with %d components in mixture...' % n_components)
+                        cluster_ids = controller.supervisor.selected
+                        _fit_gmm(cluster_ids, n_components)
+                    else:
+                        logger.error('GMM cluster cut requires at least 2 components in mixture; '
+                                     'or `var` to estimate these')
                 else:
-                    logger.error('GMM cluster cut requires at least 2 components in mixture; or -1 to estimate these')
+                    if n_components < 2:
+                        logger.error('GMM cluster cut requires at least 2 components in mixture')
+                    logger.info('Starting GMM cluster cut on channels %s and %s with %d components in mixture...'
+                                % (channel_0_str, channel_1_str, n_components))
+                    cluster_ids = controller.supervisor.selected
+                    _fit_gmm_on_selected_channels(cluster_ids, n_components, channel_0_str, channel_1_str)
+
 
 
 class RemoveOutliers(IPlugin):
